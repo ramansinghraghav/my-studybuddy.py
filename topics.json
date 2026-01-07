@@ -1,0 +1,22 @@
+{
+"python_topics": {
+"STRINGS" : "https://www.geeksforgeeks.org/python/python-string/",
+"LISTS": "https://www.geeksforgeeks.org/python/python-lists/",
+"DICTIONARYS": "https://www.geeksforgeeks.org/python/python-dictionary/",
+"TUPLES": "https://www.geeksforgeeks.org/python/python-tuples/",
+"SETS": "https://www.geeksforgeeks.org/python/python-sets/",
+"FUNCTIONS":"https://www.geeksforgeeks.org/python/python-functions/",
+"LOOPS":"https://www.geeksforgeeks.org/python/loops-in-python/",
+"CONDITIONALS": "https://www.geeksforgeeks.org/python/conditional-statements-in-python/",
+"OOPS":"https://www.geeksforgeeks.org/python/python-oops-concepts/",
+"FILE HANDLING": "https://www.geeksforgeeks.org/python/file-handling-python/",
+"RECURSION": "https://www.geeksforgeeks.org/python/python-recursion/"
+},
+"dsa_topics" : {"ARRAYS": "https://www.geeksforgeeks.org/python/arrays/",
+    "STRINGS": "https://www.geeksforgeeks.org/python/strings/",
+    "LINKED LIST": "https://www.geeksforgeeks.org/python/linked-list/",
+    "STACK": "https://www.geeksforgeeks.org/python/stack/",
+    "QUEUE": "https://www.geeksforgeeks.org/python/queue/",
+    "SORTING": "https://www.geeksforgeeks.org/python/sorting/",
+    "SEARCHING":" https://www.geeksforgeeks.org/python/searching-algorithms/"}
+}

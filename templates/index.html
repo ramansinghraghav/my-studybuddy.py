@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Study Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .box {
+            background: white;
+            padding: 20px;
+            margin: 15px auto;
+            width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 8px 15px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .progress {
+            font-weight: bold;
+        }
+/* --- Progress Bar Styles --- */
+    .progress-container {
+        width: 100%;
+        background: #e0e0e0;
+        border-radius: 20px;
+        height: 18px;
+        margin-bottom: 15px;
+    }
+
+    .progress-bar {
+        height: 100%;
+        width: 0%;
+        background: #4caf50;
+        border-radius: 20px;
+        transition: width 0.5s ease;
+    }
+
+    .progress-bar.dsa {
+        background: #2196f3;
+    }
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+.day-box {
+    border: 1px solid #ccc;
+    min-height: 80px;
+    padding: 4px;
+    font-size: 12px;
+    border-radius: 6px;
+    background: #fafafa;
+}
+
+.day-number {
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.topic {
+    background: #d1e7dd;
+    margin-top: 2px;
+    padding: 2px;
+    border-radius: 4px;
+}
+    
+    </style>
+
+</head>
+<body>
+
+<h1>📚 Study Tracker</h1>
+<button onclick="resetProgress()">Reset Progress</button>
+
+<div class="box">
+    <h3>Next Topics</h3>
+    <p>Python: <span id="pyNext">---</span></p>
+    <p>DSA: <span id="dsaNext">---</span></p>
+    <button onclick="loadNext()">Refresh</button>
+</div>
+
+<div class="box">
+    <h3>Completed Topics (with Date)</h3>
+    <ul id="completedList"></ul>
+    <button onclick="loadCompletedWithDate()">Refresh</button>
+</div>
+
+<div class="box">
+    <h3>Mark Topic Completed</h3>
+    <select id="subject">
+        <option value="python">Python</option>
+        <option value="dsa">DSA</option>
+    </select>
+    <input type="text" id="topic" placeholder="Enter topic name">
+    <br>
+    <button onclick="markCompleted()">Mark Completed</button>
+</div>
+
+<div class="box">
+    <h3>Progress</h3>
+
+    <p>Python: <span id="pyProgressText">0</span>%</p>
+    <div class="progress-container">
+        <div id="pyBar" class="progress-bar"></div>
+    </div>
+
+    <p>DSA: <span id="dsaProgressText">0</span>%</p>
+    <div class="progress-container">
+        <div id="dsaBar" class="progress-bar dsa"></div>
+    </div>
+
+    <button onclick="loadProgress()">Refresh</button>
+</div>
+
+<div class="box">
+    <h3 id="calTitle">📅 Calendar</h3>
+
+    <div class="calendar-days">
+        <div>Sun</div><div>Mon</div><div>Tue</div>
+        <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+
+    <div id="calendarGrid" class="calendar-grid"></div>
+</div>
+
+
+<div class="box">
+    <h3>All Topics</h3>
+
+    <h4>Python</h4>
+    <ul id="pythonTopics"></ul>
+
+    <h4>DSA</h4>
+    <ul id="dsaTopics"></ul>
+
+    <button onclick="loadAllTopics()">Refresh Topics</button>
+</div>
+
+<script>
+function loadNext() {
+    fetch("/next-topic")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("pyNext").innerText = data.python || "DONE";
+            document.getElementById("dsaNext").innerText = data.dsa || "DONE";
+        });
+}
+
+function markCompleted() {
+    const subject = document.getElementById("subject").value;
+    const topic = document.getElementById("topic").value;
+
+    if (!topic.trim()) {
+        alert("Please enter a topic");
+        return;
+    }
+
+    fetch("/mark-completed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, topic })
+    })
+    .then(res => res.json())   // ⬅️ VERY IMPORTANT
+    .then(data => {            // ⬅️ data ko receive karo
+        console.log(data);     // DEBUG (optional)
+
+        if (data.status === "duplicate") {
+            alert("⚠️ Topic already completed");
+            return;
+        }
+
+        alert("✅ Topic marked completed");
+        loadNext();
+        loadProgress();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Something went wrong");
+    });
+}
+
+function loadCalendarGrid() {
+    fetch("/completed-with-date")
+        .then(res => res.json())
+        .then(data => {
+
+            const grid = document.getElementById("calendarGrid");
+            grid.innerHTML = "";
+
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth(); // 0-based
+
+            document.getElementById("calTitle").innerText =
+                `📅 ${now.toLocaleString("default", { month: "long" })} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // convert backend list to date-wise map
+            const map = {};
+            data.forEach(item => {
+                if (!map[item.date]) {
+                    map[item.date] = [];
+                }
+                map[item.date].push(item.topic);
+            });
+
+            // empty boxes before first date
+            for (let i = 0; i < firstDay; i++) {
+                grid.appendChild(document.createElement("div"));
+            }
+
+            // calendar dates
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr =
+                    `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+                const box = document.createElement("div");
+                box.className = "day-box";
+
+                const num = document.createElement("div");
+                num.className = "day-number";
+                num.innerText = d;
+                box.appendChild(num);
+
+                if (map[dateStr]) {
+                    map[dateStr].forEach(t => {
+                        const div = document.createElement("div");
+                        div.className = "topic";
+                        div.innerText = t;
+                        box.appendChild(div);
+                    });
+                }
+
+                grid.appendChild(box);
+            }
+        });
+}
+
+function loadProgress() {
+    fetch("/progress")
+        .then(res => res.json())
+        .then(data => {
+
+            document.getElementById("pyProgressText").innerText = data.python;
+            document.getElementById("dsaProgressText").innerText = data.dsa;
+
+
+            document.getElementById("pyBar").style.width = data.python + "%";
+            document.getElementById("dsaBar").style.width = data.dsa + "%";
+        });
+}
+
+function loadAllTopics() {
+    fetch("/all-topics")
+        .then(res => res.json())
+        .then(data => {
+            const pyList = document.getElementById("pythonTopics");
+            const dsaList = document.getElementById("dsaTopics");
+
+            pyList.innerHTML = "";
+            dsaList.innerHTML = "";
+
+            data.python.forEach(t => {
+                const li = document.createElement("li");
+                li.innerText = t.completed ? "✅ " + t.name : "⏳ " + t.name;
+                pyList.appendChild(li);
+            });
+
+            data.dsa.forEach(t => {
+                const li = document.createElement("li");
+                li.innerText = t.completed ? "✅ " + t.name : "⏳ " + t.name;
+                dsaList.appendChild(li);
+            });
+        });
+}
+
+function loadCompletedWithDate() {
+    fetch("/completed-with-date")
+        .then(res => res.json())
+        .then(data => {
+            const ul = document.getElementById("completedList");
+            ul.innerHTML = "";
+
+            if (data.length === 0) {
+                ul.innerHTML = "<li>No topics completed yet</li>";
+                return;
+            }
+
+            data.forEach(item => {
+                const li = document.createElement("li");
+                li.innerText = `✅ ${item.topic} (${item.date})`;
+                ul.appendChild(li);
+            });
+        });
+}
+
+function resetProgress() {
+    if (!confirm("Are you sure you want to reset all progress?")) {
+        return;
+    }
+
+    fetch("/reset", {
+        method: "POST"
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert("Progress reset successfully!");
+        loadProgress();   // reload progress bars
+        loadNext(); // reload next topics
+    });
+}
+// auto load
+loadNext();
+loadProgress();
+loadAllTopics();
+loadCalendarGrid();
+
+
+</script>
+
+</body>
+</html>
